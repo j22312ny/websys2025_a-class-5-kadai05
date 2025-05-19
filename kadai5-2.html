@@ -4,9 +4,9 @@
     <title>演習課題5-2：外部APIの呼び出しテスト</title>
 </head>
 <body>
-    <h1 id="msg">何かのAPI</h1>
+    <h1 id="msg">天気予報のAPI</h1>
     <form name="apiform"><p>
-        何かのフォーム：<input type="text" name="form_data">
+        都市を入力してください：<input type="text" name="form_data">
         <button type="button" id="btn1" onclick="some_api(this.form)">実行</button>
     </p></form>
     
@@ -14,7 +14,36 @@
     <script>
         async function some_api(myForm) {
             // ここにコードを書く
-            document.getElementById("result").innerHTML += myForm.form_data.value+"<br />";
+           const city = myForm.form_data.value;
+            try {
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ja&format=json`;
+                const geoRes = await fetch(geoUrl);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results || geoData.results.length === 0) {
+                    document.getElementById("result").innerText = "都市が見つかりませんでした。";
+                    return;
+                }
+
+                const location = geoData.results[0];
+                const lat = location.latitude;
+                const lon = location.longitude;
+
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=Asia%2FTokyo`;
+                const weatherRes = await fetch(weatherUrl);
+                const weatherData = await weatherRes.json();
+                const weather = weatherData.current_weather;
+
+                document.getElementById("result").innerHTML = `
+                    入力都市：${city}<br>
+                    地点：${location.name}（${lat}, ${lon}）<br>
+                    現在の気温：${weather.temperature}℃<br>
+                    風速：${weather.windspeed} km/h<br>
+                    天気コード（weathercode）：${weather.weathercode}<br>
+                    `;
+            } catch (error) {
+                document.getElementById("result").innerText = "エラーが発生しました: " + error;
+            }
             document.apiform.reset();
         }
     </script>
